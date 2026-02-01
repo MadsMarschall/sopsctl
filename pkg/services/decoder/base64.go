@@ -29,8 +29,8 @@ func (e Base64Decoder) EditDecodedFile(secretFile []byte, valueKey string) ([]by
 
 	restoreFunc := e.restoreEncodedFile(*secret, valueKey)
 
-	decodedValue, _ := base64.RawStdEncoding.DecodeString(valueData)
-	if decodedValue == nil || len(decodedValue) == 0 {
+	decodedValue, err := base64.StdEncoding.DecodeString(valueData)
+	if err != nil || len(decodedValue) == 0 {
 		return nil, nil, fmt.Errorf("failed to decode base64 value for key %s", valueKey)
 	}
 
@@ -39,7 +39,7 @@ func (e Base64Decoder) EditDecodedFile(secretFile []byte, valueKey string) ([]by
 
 func (e Base64Decoder) restoreEncodedFile(original domain.RawSecret, editedKey string) func([]byte) ([]byte, error) {
 	return func(content []byte) ([]byte, error) {
-		encodedContent := base64.RawStdEncoding.EncodeToString(content)
+		encodedContent := base64.StdEncoding.EncodeToString(content)
 		original.Data[editedKey] = encodedContent
 		restoredFile, err := yaml.Marshal(original)
 		if err != nil {

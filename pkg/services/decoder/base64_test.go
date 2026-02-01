@@ -2,6 +2,7 @@ package decoder
 
 import (
 	"encoding/base64"
+	"fmt"
 	"sopsctl/pkg/domain"
 	"testing"
 
@@ -22,7 +23,7 @@ metadata:
   name: test-secret
   namespace: default
 data:
-  config.yaml: ` + base64.RawStdEncoding.EncodeToString([]byte(yamlContent)) + `
+  config.yaml: ` + base64.StdEncoding.EncodeToString([]byte(yamlContent)) + `
 type: Opaque`
 
 	// Call EditDecodedFile
@@ -61,14 +62,14 @@ type: Opaque`
 func TestBase64Decoder_RestoreEncodedFile_Success(t *testing.T) {
 	decoder := Base64Decoder{}
 
-	// Create a valid secret
+	// Create a valid secret with properly padded base64
 	secretYAML := `apiVersion: v1
 kind: Secret
 metadata:
   name: test-secret
   namespace: default
 data:
-  config.yaml: b3JpZ2luYWw6IGNvbnRlbnQ
+  config.yaml: b3JpZ2luYWw6IGNvbnRlbnQ=
 type: Opaque`
 
 	// Call EditDecodedFile to get the restore function
@@ -98,7 +99,7 @@ type: Opaque`
 	encodedValue := data["config.yaml"]
 
 	// Decode and verify the content
-	decodedValue, err := base64.RawStdEncoding.DecodeString(encodedValue)
+	decodedValue, err := base64.StdEncoding.DecodeString(encodedValue)
 	require.NoError(t, err)
 	assert.Equal(t, string(modifiedContent), string(decodedValue))
 }
@@ -106,14 +107,14 @@ type: Opaque`
 func TestBase64Decoder_RestoreEncodedFile_EmptyContent(t *testing.T) {
 	decoder := Base64Decoder{}
 
-	// Create a valid secret
+	// Create a valid secret with properly padded base64
 	secretYAML := `apiVersion: v1
 kind: Secret
 metadata:
   name: test-secret
   namespace: default
 data:
-  config.yaml: b3JpZ2luYWw
+  config.yaml: b3JpZ2luYWw=
 type: Opaque`
 
 	// Call EditDecodedFile to get the restore function
@@ -136,7 +137,7 @@ type: Opaque`
 	data := restoredSecret["data"].(map[string]interface{})
 	encodedValue := data["config.yaml"].(string)
 
-	decodedValue, err := base64.RawStdEncoding.DecodeString(encodedValue)
+	decodedValue, err := base64.StdEncoding.DecodeString(encodedValue)
 	require.NoError(t, err)
 	assert.Equal(t, "", string(decodedValue))
 }
@@ -144,14 +145,14 @@ type: Opaque`
 func TestBase64Decoder_RestoreEncodedFile_LargeContent(t *testing.T) {
 	decoder := Base64Decoder{}
 
-	// Create a valid secret
+	// Create a valid secret with properly padded base64
 	secretYAML := `apiVersion: v1
 kind: Secret
 metadata:
   name: test-secret
   namespace: default
 data:
-  config.yaml: c21hbGw
+  config.yaml: c21hbGw=
 type: Opaque`
 
 	// Call EditDecodedFile to get the restore function
@@ -179,7 +180,7 @@ type: Opaque`
 	data := restoredSecret["data"].(map[string]interface{})
 	encodedValue := data["config.yaml"].(string)
 
-	decodedValue, err := base64.RawStdEncoding.DecodeString(encodedValue)
+	decodedValue, err := base64.StdEncoding.DecodeString(encodedValue)
 	require.NoError(t, err)
 	assert.Equal(t, largeContent, decodedValue)
 }
@@ -188,13 +189,14 @@ func TestBase64Decoder_RoundTrip(t *testing.T) {
 	decoder := Base64Decoder{}
 
 	originalContent := "key: value\nfoo: bar\nnested:\n  item: test"
+	// Properly padded base64
 	secretYAML := `apiVersion: v1
 kind: Secret
 metadata:
   name: test-secret
   namespace: default
 data:
-  config.yaml: a2V5OiB2YWx1ZQpmb286IGJhcgpuZXN0ZWQ6CiAgaXRlbTogdGVzdA
+  config.yaml: a2V5OiB2YWx1ZQpmb286IGJhcgpuZXN0ZWQ6CiAgaXRlbTogdGVzdA==
 type: Opaque`
 
 	// Decode
@@ -214,4 +216,110 @@ type: Opaque`
 	decoded2, _, err := decoder.EditDecodedFile(restored, "config.yaml")
 	require.NoError(t, err)
 	assert.Equal(t, string(modifiedContent), string(decoded2))
+}
+
+// TestBase64Decoder_PreservesContentExactly verifies that content is preserved byte-for-byte
+// through the decode -> edit -> encode cycle, including trailing newlines.
+func TestBase64Decoder_PreservesContentExactly(t *testing.T) {
+	decoder := Base64Decoder{}
+
+	testCases := []struct {
+		name    string
+		content string
+	}{
+		{
+			name:    "content without trailing newline",
+			content: "key: value\nfoo: bar",
+		},
+		{
+			name:    "content with trailing newline",
+			content: "key: value\nfoo: bar\n",
+		},
+		{
+			name:    "content with multiple trailing newlines",
+			content: "key: value\nfoo: bar\n\n",
+		},
+		{
+			name:    "single line without newline",
+			content: "simple-value",
+		},
+		{
+			name:    "single line with newline",
+			content: "simple-value\n",
+		},
+		{
+			name:    "content with leading and trailing whitespace",
+			content: "  leading\ntrailing  \n",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Create a secret with the content base64-encoded using StdEncoding (Kubernetes standard)
+			encodedContent := base64.StdEncoding.EncodeToString([]byte(tc.content))
+			secretYAML := fmt.Sprintf(`apiVersion: v1
+kind: Secret
+metadata:
+  name: test-secret
+  namespace: default
+data:
+  config.yaml: %s
+type: Opaque`, encodedContent)
+
+			// Decode the secret
+			decoded, restoreFunc, err := decoder.EditDecodedFile([]byte(secretYAML), "config.yaml")
+			require.NoError(t, err, "EditDecodedFile should not fail")
+
+			// Verify decoded content matches exactly
+			assert.Equal(t, tc.content, string(decoded), "Decoded content should match original exactly")
+
+			// Restore (simulate saving without changes)
+			restored, err := restoreFunc(decoded)
+			require.NoError(t, err, "restoreFunc should not fail")
+
+			// Decode again to verify round-trip
+			decoded2, _, err := decoder.EditDecodedFile(restored, "config.yaml")
+			require.NoError(t, err, "Second EditDecodedFile should not fail")
+
+			// Verify content is preserved exactly through the round-trip
+			assert.Equal(t, tc.content, string(decoded2), "Content should be preserved exactly through round-trip")
+		})
+	}
+}
+
+// TestBase64Decoder_EditorAddsTrailingNewline simulates a user editing content
+// where the editor adds a trailing newline (like nano does by default)
+func TestBase64Decoder_EditorAddsTrailingNewline(t *testing.T) {
+	decoder := Base64Decoder{}
+
+	// Original content has no trailing newline
+	originalContent := "database-password"
+	encodedContent := base64.StdEncoding.EncodeToString([]byte(originalContent))
+	secretYAML := fmt.Sprintf(`apiVersion: v1
+kind: Secret
+metadata:
+  name: test-secret
+  namespace: default
+data:
+  password: %s
+type: Opaque`, encodedContent)
+
+	// Decode
+	decoded, restoreFunc, err := decoder.EditDecodedFile([]byte(secretYAML), "password")
+	require.NoError(t, err)
+	assert.Equal(t, originalContent, string(decoded))
+
+	// Simulate editor adding trailing newline (like nano does)
+	editedContent := []byte(originalContent + "\n")
+
+	// Restore with the editor-modified content
+	restored, err := restoreFunc(editedContent)
+	require.NoError(t, err)
+
+	// Decode again - should now have the trailing newline
+	decoded2, _, err := decoder.EditDecodedFile(restored, "password")
+	require.NoError(t, err)
+
+	// The saved content should include the newline the user/editor added
+	assert.Equal(t, string(editedContent), string(decoded2), "Editor-added newline should be preserved")
 }
