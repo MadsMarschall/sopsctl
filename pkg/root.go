@@ -3,6 +3,8 @@ package pkg
 import (
 	"fmt"
 	command "sopsctl/pkg/cmd"
+	configSet "sopsctl/pkg/cmd/config/set"
+	configView "sopsctl/pkg/cmd/config/view"
 	"sopsctl/pkg/cmd/key/add"
 	"sopsctl/pkg/cmd/key/list"
 	"sopsctl/pkg/cmd/key/remove"
@@ -72,9 +74,19 @@ func GetDigServiceContainer() *dig.Container {
 			return create.NewSecretCreateCmd(es, skm)
 		}, dig.Name(domain.SecretCreate.ToString())),
 
+		// Deprecated: Use ConfigView instead
 		container.Provide(func(skm domain.KeyStorage) domain.CommandBuilder {
 			return storageMode.NewKeyStorageModeCmd(skm)
 		}, dig.Name(domain.KeyStorageMode.ToString())),
+
+		// Config commands
+		container.Provide(func(skm domain.KeyStorage) domain.CommandBuilder {
+			return configView.NewConfigViewCmd(skm)
+		}, dig.Name(domain.ConfigView.ToString())),
+
+		container.Provide(func(skm domain.KeyStorage) domain.CommandBuilder {
+			return configSet.NewConfigSetCmd(skm)
+		}, dig.Name(domain.ConfigSet.ToString())),
 
 		container.Provide(func(
 			skm domain.SopsKeyManager,

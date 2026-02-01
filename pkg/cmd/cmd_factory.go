@@ -16,6 +16,8 @@ type CommandFactoryParams struct {
 	SecretDecryptCmdBuilder  domain.CommandBuilder `name:"secret-decrypt"`
 	KeyStorageModeCmdBuilder domain.CommandBuilder `name:"key-storage-mode"`
 	SecretCreateCmdBuilder   domain.CommandBuilder `name:"secret-create"`
+	ConfigViewCmdBuilder     domain.CommandBuilder `name:"config-view"`
+	ConfigSetCmdBuilder      domain.CommandBuilder `name:"config-set"`
 }
 
 type CommandFactory struct {
@@ -26,6 +28,8 @@ type CommandFactory struct {
 	secretEditCmdBuilder     domain.CommandBuilder
 	secretDecryptCmdBuilder  domain.CommandBuilder
 	secretCreateCmdBuilder   domain.CommandBuilder
+	configViewCmdBuilder     domain.CommandBuilder
+	configSetCmdBuilder      domain.CommandBuilder
 }
 
 func NewCommandFactory(params CommandFactoryParams) *CommandFactory {
@@ -37,6 +41,8 @@ func NewCommandFactory(params CommandFactoryParams) *CommandFactory {
 		secretEditCmdBuilder:     params.SecretEditCmdBuilder,
 		secretDecryptCmdBuilder:  params.SecretDecryptCmdBuilder,
 		secretCreateCmdBuilder:   params.SecretCreateCmdBuilder,
+		configViewCmdBuilder:     params.ConfigViewCmdBuilder,
+		configSetCmdBuilder:      params.ConfigSetCmdBuilder,
 	}
 }
 
@@ -56,6 +62,10 @@ func (cf *CommandFactory) GetCommandBuilder(cmd domain.CommandId) domain.Command
 		return cf.secretCreateCmdBuilder
 	case domain.KeyStorageMode:
 		return cf.keyStorageModeCmdBuilder
+	case domain.ConfigView:
+		return cf.configViewCmdBuilder
+	case domain.ConfigSet:
+		return cf.configSetCmdBuilder
 
 	default:
 		panic(fmt.Errorf("unknown command: %s", cmd))

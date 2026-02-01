@@ -17,7 +17,7 @@ type KeyRemoveCmd struct {
 func (k KeyRemoveCmd) InitCmd(cmd *cobra.Command) {
 	cmd.Flags().Bool("all", false, "Remove all SOPS keys from local storage")
 	cmd.Args = cobra.MaximumNArgs(1)
-	cmd.Use = "remove [cluster-name]"
+	cmd.Use = "key [cluster-name]"
 }
 
 func NewKeyRemoveCmd(skm domain.SopsKeyManager) *KeyRemoveCmd {

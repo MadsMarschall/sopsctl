@@ -96,33 +96,33 @@ First, you need to extract the age keys from your Kubernetes cluster and store t
 
 ```bash
 # Add keys from your current kubectl context
-sopsctl add-key --from-current-context
+sopsctl create key --from-cluster
 
 # Or specify a specific cluster context
-sopsctl add-key --cluster=production
+sopsctl create key --cluster=production
 
 # List stored keys
-sopsctl list-keys
+sopsctl get keys
 ```
 ### 2. Create and Manage Encrypted Secrets
 
 ```bash
 # Create an encrypted secret from literal values
-sopsctl create my-secret \
+sopsctl create secret my-secret \
   --from-literal=username=admin \
   --from-literal=password=secret123 \
   --cluster=production > secret.yaml
 
 # Create an encrypted secret from an environment file
-sopsctl create db-credentials \
+sopsctl create secret db-credentials \
   --from-env-file=.env \
   --cluster=production > db-secret.yaml
 
 # Edit an encrypted secret file
-sopsctl edit secrets.yaml --cluster=production
+sopsctl edit secret secrets.yaml --cluster=production
 
 # Decrypt and view a secret (outputs to stdout)
-sopsctl decrypt secrets.yaml --cluster=production
+sopsctl get secret secrets.yaml --cluster=production
 ```
 
 ## 📖 Command Reference
@@ -134,44 +134,44 @@ All commands support the following global flag:
 
 ### Key Management Commands
 
-#### `sopsctl add-key`
+#### `sopsctl create key`
 
 Add encryption keys from a Kubernetes cluster to local storage. Retrieves age keys from a Kubernetes secret and stores them locally in `~/.sopsctl/` for use with SOPS encryption/decryption.
 
 ```bash
-sopsctl add-key [flags]
+sopsctl create key [flags]
 ```
 
 **Flags:**
-- `--from-current-context`: Use the current kubectl context instead of specifying `--cluster`
+- `--from-cluster`: Use the current kubectl context instead of specifying `--cluster`
 - `--namespace, -n`: The namespace where the secret is located (default: `flux-system`)
 - `--secret, -s`: The name of the secret containing the SOPS key (default: `sops-age`)
 - `--key, -k`: The key within the secret that holds the age key (default: `age.agekey`)
 
-**Note:** Either `--from-current-context` or `--cluster` must be specified.
+**Note:** Either `--from-cluster` or `--cluster` must be specified.
 
 **Examples:**
 
 ```bash
 # Add keys from current context
-sopsctl add-key --from-current-context
+sopsctl create key --from-cluster
 
 # Add keys from specific cluster
-sopsctl add-key --cluster=production
+sopsctl create key --cluster=production
 
 # Add keys from specific cluster and custom secret location
-sopsctl add-key --cluster=staging --namespace=encryption --secret=my-age-key
+sopsctl create key --cluster=staging --namespace=encryption --secret=my-age-key
 
 # Add keys with custom key name
-sopsctl add-key --cluster=production --key=private.key
+sopsctl create key --cluster=production --key=private.key
 ```
 
-#### `sopsctl list-keys`
+#### `sopsctl get keys`
 
 List all age keys stored locally in `~/.sopsctl/`. Shows the cluster name and public key for each stored key.
 
 ```bash
-sopsctl list-keys [flags]
+sopsctl get keys [flags]
 ```
 
 **Flags:**
@@ -181,18 +181,18 @@ sopsctl list-keys [flags]
 
 ```bash
 # List all stored keys
-sopsctl list-keys
+sopsctl get keys
 
 # List keys including private keys
-sopsctl list-keys --show-sensitive
+sopsctl get keys --show-sensitive
 ```
 
-#### `sopsctl remove-key`
+#### `sopsctl delete key`
 
 Remove age keys from local storage. Can remove keys for a specific cluster or all stored keys.
 
 ```bash
-sopsctl remove-key [cluster-name] [flags]
+sopsctl delete key [cluster-name] [flags]
 ```
 
 **Flags:**
@@ -202,44 +202,45 @@ sopsctl remove-key [cluster-name] [flags]
 
 ```bash
 # Remove keys for specific cluster
-sopsctl remove-key production
+sopsctl delete key production
 
 # Remove all stored keys
-sopsctl remove-key --all
+sopsctl delete key --all
 ```
 
-#### `sopsctl storage-mode`
+#### `sopsctl config`
 
-View and manage SOPS key storage modes. Controls how and where encryption keys are stored.
+View and manage sopsctl configuration. Controls how and where encryption keys are stored.
 
 ```bash
-sopsctl storage-mode [flags]
+sopsctl config [command]
 ```
 
-**Flags:**
-- `--set-storage-mode, -s`: Set storage mode for SOPS keys (options: `local`, `cluster`)
+**Subcommands:**
+- `view`: Display the current configuration
+- `set <key> <value>`: Set a configuration value
 
 **Examples:**
 
 ```bash
-# View current storage mode
-sopsctl storage-mode
+# View current configuration
+sopsctl config view
 
 # Set storage mode to local
-sopsctl storage-mode --set-storage-mode=local
+sopsctl config set storage-mode local
 
-# Set storage mode to cluster to ensure keys are never stored locally
-sopsctl storage-mode --set-storage-mode=cluster
+# Set storage mode to cluster (keys never stored locally)
+sopsctl config set storage-mode cluster
 ```
 
 ### Secret Management Commands
 
-#### `sopsctl create`
+#### `sopsctl create secret`
 
 Create an encrypted Kubernetes secret from local files, directories, or literal values. This command mimics `kubectl create secret generic` but automatically encrypts the output using SOPS and age encryption. The secret is output as encrypted YAML that can be committed to version control.
 
 ```bash
-sopsctl create NAME [flags]
+sopsctl create secret NAME [flags]
 ```
 
 **Flags:**
@@ -254,35 +255,35 @@ sopsctl create NAME [flags]
 
 ```bash
 # Create secret from literal values
-sopsctl create my-secret --from-literal=username=admin --from-literal=password=secret123
+sopsctl create secret my-secret --from-literal=username=admin --from-literal=password=secret123
 
 # Create secret from files
-sopsctl create my-secret --from-file=ssh-privatekey=~/.ssh/id_rsa --from-file=ssh-publickey=~/.ssh/id_rsa.pub
+sopsctl create secret my-secret --from-file=ssh-privatekey=~/.ssh/id_rsa --from-file=ssh-publickey=~/.ssh/id_rsa.pub
 
 # Create secret from a directory (uses filenames as keys)
-sopsctl create my-secret --from-file=./config/
+sopsctl create secret my-secret --from-file=./config/
 
 # Create secret from environment file
-sopsctl create my-secret --from-env-file=.env
+sopsctl create secret my-secret --from-env-file=.env
 
 # Create secret with custom namespace and type
-sopsctl create my-secret --from-literal=token=abc123 --namespace=production --type=kubernetes.io/service-account-token
+sopsctl create secret my-secret --from-literal=token=abc123 --namespace=production --type=kubernetes.io/service-account-token
 
 # Create secret with hash appended to name
-sopsctl create my-secret --from-literal=data=value --append-hash
+sopsctl create secret my-secret --from-literal=data=value --append-hash
 ```
 
 **Notes:**
 - The `--from-env-file` flag cannot be combined with `--from-file` or `--from-literal`
-- Output is encrypted SOPS YAML that can be saved to a file: `sopsctl create my-secret --from-literal=key=value > secret.yaml`
+- Output is encrypted SOPS YAML that can be saved to a file: `sopsctl create secret my-secret --from-literal=key=value > secret.yaml`
 - Secret data is base64-encoded and then encrypted with SOPS
 
-#### `sopsctl edit`
+#### `sopsctl edit secret`
 
 Edit encrypted secret files using your default editor with automatic encryption/decryption. Provides a secure workflow where the file is temporarily decrypted, opened in an editor, then re-encrypted when you save.
 
 ```bash
-sopsctl edit [file] [flags]
+sopsctl edit secret [file] [flags]
 ```
 
 **Flags:**
@@ -294,16 +295,16 @@ sopsctl edit [file] [flags]
 
 ```bash
 # Edit entire encrypted file
-sopsctl edit secrets.yaml --cluster=production
+sopsctl edit secret secrets.yaml --cluster=production
 
 # Edit a specific decoded property
-sopsctl edit secrets.yaml --cluster=production --decode --k=database-password
+sopsctl edit secret secrets.yaml --cluster=production --decode --k=database-password
 
 # Edit single property (auto-detected if only one exists)
-sopsctl edit secrets.yaml --cluster=production --decode
+sopsctl edit secret secrets.yaml --cluster=production --decode
 
 # Edit with environment variable
-sopsctl edit secrets.yaml --cluster=production --env
+sopsctl edit secret secrets.yaml --cluster=production --env
 ```
 
 **Workflow:**
@@ -317,28 +318,28 @@ The command respects the following environment variables (in order of precedence
 1. `SOPSCTL_EDITOR`
 2. Default: `nano` (Unix) or `notepad` (Windows)
 
-#### `sopsctl decrypt`
+#### `sopsctl get secret`
 
 Decrypt a SOPS-encrypted file and output the plaintext result to stdout. Useful for viewing encrypted files, piping to other commands, or extracting specific values.
 
 ```bash
-sopsctl decrypt <file> [flags]
+sopsctl get secret <file> [flags]
 ```
 
 **Examples:**
 
 ```bash
 # Decrypt and view file contents
-sopsctl decrypt secrets.yaml --cluster=production
+sopsctl get secret secrets.yaml --cluster=production
 
 # Decrypt and pipe to another command
-sopsctl decrypt secrets.yaml --cluster=production | grep password
+sopsctl get secret secrets.yaml --cluster=production | grep password
 
 # Decrypt and save to a file
-sopsctl decrypt secrets.yaml --cluster=production > decrypted.yaml
+sopsctl get secret secrets.yaml --cluster=production > decrypted.yaml
 
 # Use with yq to extract specific values
-sopsctl decrypt secrets.yaml --cluster=production | yq .data.password
+sopsctl get secret secrets.yaml --cluster=production | yq .data.password
 ```
 
 **Security Note:** Be careful when decrypting files as the plaintext output may be sensitive. Avoid saving decrypted content to disk unnecessarily.
@@ -379,7 +380,7 @@ https://fluxcd.io/flux/guides/mozilla-sops/#encrypting-secrets-using-age
 
 2. **Add keys to Phantom Flux:**
    ```bash
-   sopsctl add-key --from-current-context
+   sopsctl create key --from-cluster
    ```
 ## Troubleshooting
 
@@ -401,7 +402,7 @@ Error: failed to open editor
 ```
 
 **Solutions:**
-- Set `EDITOR` environment variable: `export EDITOR=nano`
+- Set `SOPSCTL_EDITOR` environment variable: `export SOPSCTL_EDITOR=nano`
 - Ensure your editor is in PATH
 - Try with a simple editor like `nano` or `vi`
 
@@ -412,7 +413,7 @@ Error: failed to decrypt file
 ```
 
 **Solutions:**
-- Verify the age key is correctly added: `sopsctl list-keys`
+- Verify the age key is correctly added: `sopsctl get keys`
 - Check SOPS configuration in `.sops.yaml`
 - Ensure the file was encrypted with the correct age key
 
@@ -425,7 +426,7 @@ Error: permission denied when accessing key storage
 **Solutions:**
 - Check permissions on `~/.sopsctl/` directory
 - Ensure the directory is owned by your user account
-- Recreate the directory: `rm -rf ~/.sopsctl && sopsctl add-key --from-current-context`
+- Recreate the directory: `rm -rf ~/.sopsctl && sopsctl create key --from-cluster`
 
 ## 🤝 Contributing
 
