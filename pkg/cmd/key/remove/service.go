@@ -15,9 +15,9 @@ type KeyRemoveCmd struct {
 }
 
 func (k KeyRemoveCmd) InitCmd(cmd *cobra.Command) {
-	cmd.Flags().Bool("all", false, "Remove all SOPS keys from local storage")
+	cmd.Flags().BoolP("all", "a", false, "Remove all SOPS keys from local storage")
 	cmd.Args = cobra.MaximumNArgs(1)
-	cmd.Use = "remove [cluster-name]"
+	cmd.Use = "key [cluster-name]"
 }
 
 func NewKeyRemoveCmd(skm domain.SopsKeyManager) *KeyRemoveCmd {
@@ -52,7 +52,14 @@ func (k KeyRemoveCmd) Execute() (string, error) {
 			}
 			output += fmt.Sprintf("Removed SOPS key for context: %s\n", color.CyanString(ctx))
 		}
-
 	}
+
+	// Check for cluster names that were not found
+	for _, clusterName := range k.options.ClusterNames {
+		if !slices.Contains(keys, clusterName) {
+			output += color.YellowString(fmt.Sprintf("Key not found: %s\n", clusterName))
+		}
+	}
+
 	return output, nil
 }

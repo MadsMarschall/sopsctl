@@ -14,7 +14,7 @@ type KeyAddCmd struct {
 }
 
 func (k KeyAddCmd) InitCmd(cmd *cobra.Command) {
-	cmd.Flags().Bool("from-current-context", false, "Use the current Kubernetes context instead of specifying --context")
+	cmd.Flags().Bool("from-cluster", false, "Add key from the current Kubernetes cluster context")
 	cmd.Flags().StringP("namespace", "n", "flux-system", "The namespace where the secret is located")
 	cmd.Flags().StringP("secret", "s", "sops-age", "The name of the secret containing the SOPS key")
 	cmd.Flags().StringP("key", "k", "age.agekey", "The key within the secret that holds the SOPS key")

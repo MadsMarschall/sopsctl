@@ -2,11 +2,15 @@ package editor
 
 import (
 	"bytes"
+	"encoding/base64"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sopsctl/pkg/services/encryption"
 	"strings"
 	"testing"
+
+	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -400,5 +404,142 @@ func TestPreserveYAMLStructure(t *testing.T) {
 		if !strings.Contains(finalStr, element) {
 			t.Errorf("YAML structure lost element: %s", element)
 		}
+	}
+}
+
+// TestBase64DecodeEditEncodeWithEncryption tests the full workflow of:
+// decrypt -> base64 decode -> edit -> base64 encode -> encrypt
+// This verifies that content is preserved exactly through the entire cycle,
+// including trailing newlines (which editors like nano may add/remove).
+func TestBase64DecodeEditEncodeWithEncryption(t *testing.T) {
+	encryptionSvc := encryption.NewSopsAgeDecryptStrategy()
+
+	testCases := []struct {
+		name            string
+		originalContent string
+		editedContent   string
+	}{
+		{
+			name:            "content without trailing newline preserved",
+			originalContent: "database-password-123",
+			editedContent:   "database-password-123",
+		},
+		{
+			name:            "content with trailing newline preserved",
+			originalContent: "database-password-123\n",
+			editedContent:   "database-password-123\n",
+		},
+		{
+			name:            "editor adds trailing newline",
+			originalContent: "database-password-123",
+			editedContent:   "database-password-123\n",
+		},
+		{
+			name:            "editor removes trailing newline",
+			originalContent: "database-password-123\n",
+			editedContent:   "database-password-123",
+		},
+		{
+			name:            "multiline content preserved",
+			originalContent: "line1\nline2\nline3",
+			editedContent:   "line1\nline2\nline3",
+		},
+		{
+			name:            "multiline content with trailing newline",
+			originalContent: "line1\nline2\nline3\n",
+			editedContent:   "line1\nline2\nline3\n",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Create a Kubernetes secret with base64-encoded content
+			encodedOriginal := base64.StdEncoding.EncodeToString([]byte(tc.originalContent))
+			secretYAML := fmt.Sprintf(`apiVersion: v1
+kind: Secret
+metadata:
+  name: test-secret
+  namespace: default
+data:
+  password: %s
+type: Opaque
+`, encodedOriginal)
+
+			// Encrypt the secret
+			encrypted, err := encryptionSvc.EncryptData([]byte(secretYAML), testAgePublicKey)
+			if err != nil {
+				t.Fatalf("Failed to encrypt: %v", err)
+			}
+
+			// Decrypt
+			decrypted, err := encryptionSvc.DecryptData(encrypted, testAgeKey)
+			if err != nil {
+				t.Fatalf("Failed to decrypt: %v", err)
+			}
+
+			// Parse the decrypted YAML
+			var secret map[string]interface{}
+			if err := yaml.Unmarshal(decrypted, &secret); err != nil {
+				t.Fatalf("Failed to parse decrypted YAML: %v", err)
+			}
+
+			// Get the base64 encoded value
+			data := secret["data"].(map[string]interface{})
+			encodedValue := data["password"].(string)
+
+			// Decode the base64 value
+			decodedValue, err := base64.StdEncoding.DecodeString(encodedValue)
+			if err != nil {
+				t.Fatalf("Failed to decode base64: %v", err)
+			}
+
+			// Verify original content
+			if string(decodedValue) != tc.originalContent {
+				t.Errorf("Decoded content mismatch.\nExpected: %q\nGot: %q", tc.originalContent, string(decodedValue))
+			}
+
+			// Simulate editor making changes (or no changes)
+			editedValue := []byte(tc.editedContent)
+
+			// Re-encode the edited content
+			reencoded := base64.StdEncoding.EncodeToString(editedValue)
+			data["password"] = reencoded
+
+			// Marshal back to YAML
+			modifiedYAML, err := yaml.Marshal(secret)
+			if err != nil {
+				t.Fatalf("Failed to marshal modified secret: %v", err)
+			}
+
+			// Re-encrypt
+			reencrypted, err := encryptionSvc.EncryptData(modifiedYAML, testAgePublicKey)
+			if err != nil {
+				t.Fatalf("Failed to re-encrypt: %v", err)
+			}
+
+			// Decrypt again
+			finalDecrypted, err := encryptionSvc.DecryptData(reencrypted, testAgeKey)
+			if err != nil {
+				t.Fatalf("Failed to decrypt final: %v", err)
+			}
+
+			// Parse and verify final content
+			var finalSecret map[string]interface{}
+			if err := yaml.Unmarshal(finalDecrypted, &finalSecret); err != nil {
+				t.Fatalf("Failed to parse final YAML: %v", err)
+			}
+
+			finalData := finalSecret["data"].(map[string]interface{})
+			finalEncoded := finalData["password"].(string)
+			finalDecoded, err := base64.StdEncoding.DecodeString(finalEncoded)
+			if err != nil {
+				t.Fatalf("Failed to decode final base64: %v", err)
+			}
+
+			// Verify the edited content was preserved exactly
+			if string(finalDecoded) != tc.editedContent {
+				t.Errorf("Final content mismatch.\nExpected: %q\nGot: %q", tc.editedContent, string(finalDecoded))
+			}
+		})
 	}
 }

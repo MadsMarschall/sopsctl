@@ -14,8 +14,7 @@ type SecretDecryptCmd struct {
 }
 
 func (d SecretDecryptCmd) InitCmd(_ *cobra.Command) {
-	//TODO implement me
-	panic("implement me")
+	// No additional flags needed for decrypt command
 }
 
 func NewSecretDecryptCmd(keyManager domain.SopsKeyManager, encryptionService domain.EncryptionService) *SecretDecryptCmd {

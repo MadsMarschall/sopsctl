@@ -3,8 +3,6 @@ package cmd
 
 import (
 	"os"
-	"sopsctl/cmd/key_commands"
-	"sopsctl/cmd/secret_commands"
 
 	"github.com/spf13/cobra"
 )
@@ -12,18 +10,19 @@ import (
 var rootCmd = &cobra.Command{
 	Use:   "sopsctl",
 	Short: "Secure configuration management with age encryption and SOPS",
-	Long: `Phantom Flux is a CLI tool for managing encrypted configurations using age keys and SOPS in a Kubernetes cluster.
+	Long: `sopsctl is a CLI tool for managing encrypted configurations using age keys and SOPS in a Kubernetes cluster.
 
 Features:
   - Age key management with secure storage in ~/.sopsctl
   - SOPS integration for encrypted YAML/JSON files
-  - Interactive text editor (use 'sopsctl edit' command)
-  - Easy key generation and import
+  - Interactive text editor for editing encrypted secrets
+  - Easy key generation and import from Kubernetes clusters
 
 Get started:
-  sopctl key init      # Initialize your age key
-  sopctl key show      # Display your key information
-  sopctl --help        # Show all available commands`,
+  sopsctl create key --from-cluster   # Add age key from current cluster
+  sopsctl get keys                    # List stored keys
+  sopsctl create secret my-secret     # Create an encrypted secret
+  sopsctl --help                      # Show all available commands`,
 	Run: func(cmd *cobra.Command, args []string) {
 		err := cmd.Help()
 		if err != nil {
@@ -42,12 +41,9 @@ func Execute() {
 func init() {
 	rootCmd.PersistentFlags().StringP("cluster", "c", "", "Kubernetes cluster context to use")
 
-	rootCmd.AddCommand(secret_commands.SecretDecryptCmd)
-	rootCmd.AddCommand(secret_commands.SecretEditCmd)
-	rootCmd.AddCommand(secret_commands.SecretCreateCmd)
-
-	rootCmd.AddCommand(key_commands.KeyAddCmd)
-	rootCmd.AddCommand(key_commands.KeyListCmd)
-	rootCmd.AddCommand(key_commands.RemoveCmd)
-	rootCmd.AddCommand(key_commands.KeyStorageModeCmd)
+	rootCmd.AddCommand(createCmd)
+	rootCmd.AddCommand(getCmd)
+	rootCmd.AddCommand(editCmd)
+	rootCmd.AddCommand(deleteCmd)
+	rootCmd.AddCommand(configCmd)
 }
