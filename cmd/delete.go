@@ -27,7 +27,8 @@ var deleteKeyCmd = &cobra.Command{
   sopsctl delete key production
 
   # Remove all stored keys
-  sopsctl delete key --all`,
+  sopsctl delete key --all
+  sopsctl delete key -a`,
 	Run: func(cmd *cobra.Command, args []string) {
 		pkg.ExecuteCobraCommand(domain.KeyRemove, cmd, args)
 	},
