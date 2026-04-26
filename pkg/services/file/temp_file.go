@@ -22,7 +22,7 @@ func (s *WriterService) CreateTempFile(decrypted []byte) (string, func(), error)
 			if os.IsNotExist(cleanupErr) {
 				return
 			}
-			helpers.PrintError("failed to clean up temp directory: %v", cleanupErr)
+			helpers.PrintError("failed to clean up temp directory", cleanupErr)
 		}
 	}
 	const tempDirPermission = 0700

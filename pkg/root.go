@@ -145,7 +145,7 @@ func ExecuteCobraCommand(commandId domain.CommandId, cmd *cobra.Command, args []
 	}
 	result, err := executor.Execute()
 	if err != nil {
-		helpers.PrintError("Failed to execute command: %v", err)
+		helpers.PrintError("Failed to execute command", err)
 		return
 	}
 	fmt.Println(result)

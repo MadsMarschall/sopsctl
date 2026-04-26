@@ -83,7 +83,10 @@ func (c *ConfigFile) getOrCreateCtx(ctxName string) *domain.CTX {
 }
 
 func (c *ConfigFile) GetPrivateKey(ctxName string) (string, error) {
-	ctx := c.getOrCreateCtx(ctxName)
+	ctx, exists := c.Contexts[ctxName]
+	if !exists || ctx.PrivateKey == "" {
+		return "", fmt.Errorf("no SOPS key stored for context %q; run 'sopsctl create key --cluster=%s' first", ctxName, ctxName)
+	}
 	return ctx.PrivateKey, nil
 }
 
