@@ -18,7 +18,7 @@ func resolveCluster(cluster *string) error {
 		*cluster, _ = helpers.GetCtxNameFromCurrent()
 		if *cluster == "" {
 			err := fmt.Errorf("failed to get current context")
-			helpers.PrintError("Failed to get current context: %v", err)
+			helpers.PrintError("Failed to get current context", err)
 			return err
 		}
 	}
