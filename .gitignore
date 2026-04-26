@@ -1,3 +1,5 @@
 .idea/
 # Added by goreleaser init:
 dist/
+.claude
+CLAUDE.md
