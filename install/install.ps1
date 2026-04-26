@@ -8,7 +8,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$GITHUB_REPO = "phantomstacks/sopsctl"
+$GITHUB_REPO = "MadsMarschall/sopsctl"
 
 # Helper functions for logs
 function Write-Info {

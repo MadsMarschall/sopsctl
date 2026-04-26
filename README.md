@@ -1,52 +1,52 @@
 **Secure Secret Management for SOPS encrypted secrets in FluxCD GitOps repositories**
 
-Sopsctl is a command-line tool that streamlines the management of encrypted Kubernetes secrets in GitOps workflows. It enables developers and DevOps engineers to securely create, edit, and manage secrets in a way that fits naturally into Git-based workflows when using Flux with Sops encrypted secrets stored in git repositories.
+Sopsctl is a command-line tool that streamlines the management of encrypted Kubernetes secrets in FluxCD workflow. It simplifies the process of of creating and updating SOPS encrypted secret checked in to GitOps repos by enabling you to decrypt and edit secrets in a few simple commands.
 
 ## Why Sopsctl?
-Adding encrypted secrets to GitOps repositories gives many benefits, including version control, auditability, and collaboration.
+Adding encrypted secrets to GitOps repositories is a simple way of managing secrets and ensuring drifdetection of sensitive data.
 
 https://fluxcd.io/flux/guides/mozilla-sops/
 
-However, managing these secrets can be cumbersome requiring multiple tools and manual steps. When using Flux with SOPS and age encryption, users often need to juggle between `kubectl`, `sops`, and manual key management when editing and creating secrets. Sopsctl simplifies this process by providing a unified CLI that simplifies creating and editing secrets while makeing sure that no unencrypted data is checked into version control.
+/However, managing these secrets can be cumbersome requiring multiple tools and manual steps. When using Flux with SOPS and age encryption, users often need to juggle between `kubectl`, `sops`, and manual key management when editing and creating secrets. Sopsctl simplifies this process by providing a simple CLI for creating and managing secrets in yaml format, by using the private key stored in your cluster.
 
 
 
 The tool is invoked using the `sopsctl` command.
 
-## 🌟 Features
+## Features
 * **Create encrypted secrets easily:** Generate SOPS-encrypted Kubernetes secrets from files, literal values, or environment files with a single command.
-* **Edit secrets securely:** Edit encrypted secret files with automatic decryption and re-encryption, ensuring sensitive data does not get commited into GitOps repo.
+* **Edit secrets securely:** Edit encrypted secret files with automatic decryption and re-encryption, ensuring sensitive data does not get committed into the GitOps repo.
 * **Edit individual secret properties in encrypted secret:** Modify specific fields within an encrypted secret without exposing the entire file.
-* **Edit encrypted encoded and encrypted secrets:** Seamlessly handle secrets that are both base64-encoded and SOPS-encrypted.
+* **Edit base64-encoded values inside encrypted secrets:** Seamlessly handle secrets that are both base64-encoded and SOPS-encrypted.
 
-## 📋 Prerequisites
+## Prerequisites
 
 Before using sopsctl, ensure you have:
 
 - **Kubernetes cluster access** with `kubectl` configured. sopsctl retrieves age keys from Kubernetes secrets.
 - **A kubernetes cluster with SOPS age keys** set up. Follow the [FluxCD SOPS guide](https://fluxcd.io/flux/guides/mozilla-sops/#encrypting-secrets-using-age) to create and store age keys in your cluster.
 
-## 📦 Installation
+## Installation 
 
 ### Linux / macOS
 
 Install the latest version using the installation script:
 
 ```bash
-curl -s https://raw.githubusercontent.com/phantomstacks/sopsctl/main/install/install.sh | sudo bash
+curl -s https://raw.githubusercontent.com/MadsMarschall/sopsctl/main/install/install.sh | sudo bash
 ```
 
 Or install to a custom directory (no sudo required):
 
 ```bash
-curl -s https://raw.githubusercontent.com/phantomstacks/sopsctl/main/install/install.sh | bash -s -- ~/.local/bin
+curl -s https://raw.githubusercontent.com/MadsMarschall/sopsctl/main/install/install.sh | bash -s -- ~/.local/bin
 ```
 
 Install a specific version:
 
 ```bash
 export SOPSCTL_VERSION=1.0.0
-curl -s https://raw.githubusercontent.com/phantomstacks/sopsctl/main/install/install.sh | sudo bash
+curl -s https://raw.githubusercontent.com/MadsMarschall/sopsctl/main/install/install.sh | sudo bash
 ```
 
 ### Windows
@@ -54,20 +54,20 @@ curl -s https://raw.githubusercontent.com/phantomstacks/sopsctl/main/install/ins
 Install using PowerShell (run as Administrator or regular user):
 
 ```powershell
-irm https://raw.githubusercontent.com/phantomstacks/sopsctl/main/install/install.ps1 | iex
+irm https://raw.githubusercontent.com/MadsMarschall/sopsctl/main/install/install.ps1 | iex
 ```
 
 Install a specific version:
 
 ```powershell
 $env:Version = "1.0.0"
-irm https://raw.githubusercontent.com/phantomstacks/sopsctl/main/install/install.ps1 | iex
+irm https://raw.githubusercontent.com/MadsMarschall/sopsctl/main/install/install.ps1 | iex
 ```
 
 Install to a custom directory:
 
 ```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/phantomstacks/sopsctl/main/install/install.ps1))) -BinDir "C:\tools\bin"
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/MadsMarschall/sopsctl/main/install/install.ps1))) -BinDir "C:\tools\bin"
 ```
 
 **Note:** Windows installation requires Windows 10 (version 1803+) or Windows Server 2019+ for the built-in `tar.exe` utility.
@@ -82,9 +82,11 @@ sopsctl --help
 
 ### Manual Installation
 
-You can also download pre-built binaries from the [releases page](https://github.com/phantomstacks/sopsctl/releases) and manually place them in your PATH.
+You can also download pre-built binaries from the [releases page](https://github.com/MadsMarschall/sopsctl/releases) and manually place them in your PATH.
 
-## 🚀 Quick Start
+# Quick Start
+
+The sopsctl tries to immitate the command structure of kubectl to make it easy to remember commands for people already familiar with that CLI.
 
 ### 1. Add Age Keys from Your Kubernetes Cluster
 
@@ -121,7 +123,7 @@ sopsctl edit secret secrets.yaml --cluster=production
 sopsctl get secret secrets.yaml --cluster=production
 ```
 
-## 📖 Command Reference
+## Command Reference
 
 ### Global Flags
 
@@ -149,7 +151,7 @@ sopsctl create key [flags]
 **Examples:**
 
 ```bash
-# Add keys from current context
+# Add keys from current kubectl context
 sopsctl create key --from-cluster
 
 # Add keys from specific cluster
@@ -284,7 +286,7 @@ sopsctl edit secret [file] [flags]
 
 **Flags:**
 - `--decode, -d`: Edit a decoded secret property without manually encrypting the entire file
-- `--k, -k string`: Specify the key within the secret to decode and edit (used with `--decode`)
+- `-k string`: Specify the key within the secret to decode and edit (used with `--decode`)
 - `--env, -e`: Specify environment variable that holds the decoded value
 
 **Examples:**
@@ -294,7 +296,7 @@ sopsctl edit secret [file] [flags]
 sopsctl edit secret secrets.yaml --cluster=production
 
 # Edit a specific decoded property
-sopsctl edit secret secrets.yaml --cluster=production --decode --k=database-password
+sopsctl edit secret secrets.yaml --cluster=production --decode -k=database-password
 
 # Edit single property (auto-detected if only one exists)
 sopsctl edit secret secrets.yaml --cluster=production --decode
@@ -340,17 +342,17 @@ sopsctl get secret secrets.yaml --cluster=production | yq .data.password
 
 **Security Note:** Be careful when decrypting files as the plaintext output may be sensitive. Avoid saving decrypted content to disk unnecessarily.
 
-## ⚙️ Configuration
+## Configuration
 
 ### Environment Variables
 
-Phantom Flux respects standard environment variables for editor selection:
+sopsctl respects the following environment variable for editor selection:
 - `SOPSCTL_EDITOR`: Primary editor preference
 - **Default**: `nano` on Unix systems, `notepad` on Windows
 
 ### Key Storage
 
-Age keys are stored in `~/.sopsctl/` directory by default. You can change the storage mode using the `sopsctl storage-mode` command.
+Age keys are stored in `~/.sopsctl/` directory by default. You can change the storage mode using `sopsctl config set storage-mode <local|cluster>` (see [`sopsctl config`](#sopsctl-config)).
 
 ### SOPS Configuration
 
@@ -360,11 +362,13 @@ Create a `.sops.yaml` file in your project root to configure encryption rules:
 creation_rules:
   - path_regex: .*secrets.*\.yaml$
     encrypted_regex: ^(data|stringData)$
-    age: "age-private-key-here"
+    age: "age1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
   - path_regex: .*config.*\.yaml$
     encrypted_regex: ^(spec\.data)$
-    age: "age-private-key-here"
+    age: "age1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 ```
+
+> The `age:` field takes the **public** recipient key (`age1...`), not the private `AGE-SECRET-KEY-1...`.
 
 ## 📝 Common Workflows
 
@@ -374,10 +378,12 @@ creation_rules:
 Follow the FluxCD guide to set up SOPS with age encryption in your cluster:
 https://fluxcd.io/flux/guides/mozilla-sops/#encrypting-secrets-using-age
 
-2. **Add keys to Phantom Flux:**
+2. **Add keys to sopsctl:**
    ```bash
    sopsctl create key --from-cluster
    ```
+
+3. **Create or edit encrypted secrets** — see the [Quick Start](#-quick-start) examples above.
 ## Troubleshooting
 
 ### Key Not Found Error
@@ -424,7 +430,7 @@ Error: permission denied when accessing key storage
 - Ensure the directory is owned by your user account
 - Recreate the directory: `rm -rf ~/.sopsctl && sopsctl create key --from-cluster`
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please feel free to submit issues and enhancement requests.
 
@@ -443,7 +449,7 @@ go build -o sopsctl .
 go test ./...
 ```
 
-## 🔗 Related Projects
+## Related Projects
 
 - [SOPS](https://github.com/mozilla/sops) - Secrets OPerationS
 - [Age](https://age-encryption.org/) - Simple, modern encryption
