@@ -316,6 +316,13 @@ The command respects the following environment variables (in order of precedence
 1. `SOPSCTL_EDITOR`
 2. Default: `nano` (Unix) or `notepad` (Windows)
 
+> **GUI editors must be invoked with a wait flag.** VS Code, Sublime Text, Atom, and similar editors detach from the shell on launch, so sopsctl would re-encrypt the (still-empty) file before you finish editing. Pass the editor's wait flag in `SOPSCTL_EDITOR`:
+> ```bash
+> export SOPSCTL_EDITOR="code --wait"   # VS Code / VSCodium / code-insiders
+> export SOPSCTL_EDITOR="subl --wait"   # Sublime Text
+> export SOPSCTL_EDITOR="atom --wait"   # Atom
+> ```
+
 #### `sopsctl get secret`
 
 Decrypt a SOPS-encrypted file and output the plaintext result to stdout. Useful for viewing encrypted files, piping to other commands, or extracting specific values.
@@ -349,6 +356,12 @@ sopsctl get secret secrets.yaml --cluster=production | yq .data.password
 sopsctl respects the following environment variable for editor selection:
 - `SOPSCTL_EDITOR`: Primary editor preference
 - **Default**: `nano` on Unix systems, `notepad` on Windows
+
+GUI editors (VS Code, Sublime, Atom, ...) need their wait flag, otherwise the editor binary returns immediately and sopsctl re-encrypts the file before you save:
+
+```bash
+export SOPSCTL_EDITOR="code --wait"
+```
 
 ### Key Storage
 
@@ -407,6 +420,16 @@ Error: failed to open editor
 - Set `SOPSCTL_EDITOR` environment variable: `export SOPSCTL_EDITOR=nano`
 - Ensure your editor is in PATH
 - Try with a simple editor like `nano` or `vi`
+
+### Editor Closes Immediately / Edits Are Not Saved
+
+You set `SOPSCTL_EDITOR=code` (or `subl`, `atom`, ...) and `sopsctl edit secret` returns instantly without waiting for you to save, leaving the file unchanged or empty.
+
+**Cause:** GUI editor CLIs hand the file off to a long-running editor process and exit immediately. sopsctl's `cmd.Run()` unblocks, reads the (untouched) file, and re-encrypts it.
+
+**Solutions:**
+- Add the editor's wait flag: `export SOPSCTL_EDITOR="code --wait"` (VS Code), `"subl --wait"` (Sublime), `"atom --wait"` (Atom).
+- Or use a terminal editor that blocks naturally: `nano`, `vim`, `nvim`, `micro`.
 
 ### SOPS Decryption Failed
 

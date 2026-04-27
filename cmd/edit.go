@@ -34,7 +34,14 @@ Workflow:
 Editor Selection:
 The command respects the following environment variables (in order of precedence):
 1. SOPSCTL_EDITOR
-2. Default: nano (Unix) or notepad (Windows)`,
+2. Default: nano (Unix) or notepad (Windows)
+
+GUI editors (VS Code, Sublime Text, Atom, ...) detach from the shell by default, so
+sopsctl would re-encrypt the file before you finish editing. Pass the editor's wait
+flag explicitly:
+  export SOPSCTL_EDITOR="code --wait"     # VS Code / VSCodium / code-insiders
+  export SOPSCTL_EDITOR="subl --wait"     # Sublime Text
+  export SOPSCTL_EDITOR="atom --wait"     # Atom`,
 	Example: `  # Edit entire encrypted file
   sopsctl edit secret secrets.yaml --cluster=production
 
