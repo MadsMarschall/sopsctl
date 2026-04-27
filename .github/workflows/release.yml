@@ -1,27 +1,56 @@
-name: goreleaser
+name: release
 
 on:
   push:
-    tags:
-      - '*'
+    branches:
+      - main
 
 permissions:
   contents: write
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
-  goreleaser:
+  tag:
     runs-on: ubuntu-latest
+    outputs:
+      new_tag: ${{ steps.bump.outputs.new_tag }}
     steps:
-      -
-        name: Checkout
+      - name: Checkout
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      -
-        name: Set up Go
+
+      - name: Bump version and push tag
+        id: bump
+        uses: anothrNick/github-tag-action@1.71.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEFAULT_BUMP: patch
+          WITH_V: true
+          INITIAL_VERSION: 0.2.1
+          MAJOR_STRING_TOKEN: "#MAJOR"
+          MINOR_STRING_TOKEN: "#MINOR"
+          PATCH_STRING_TOKEN: "#PATCH"
+          NONE_STRING_TOKEN: "#NONE"
+
+  goreleaser:
+    needs: tag
+    if: needs.tag.outputs.new_tag != ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout at new tag
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          ref: ${{ needs.tag.outputs.new_tag }}
+
+      - name: Set up Go
         uses: actions/setup-go@v5
-      -
-        name: Run GoReleaser
+
+      - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
