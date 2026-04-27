@@ -2,6 +2,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -31,11 +32,20 @@ Get started:
 	},
 }
 
-func Execute() {
+func Execute(version string) {
+	rootCmd.Version = version
 	err := rootCmd.Execute()
 	if err != nil {
 		os.Exit(1)
 	}
+}
+
+var versionCmd = &cobra.Command{
+	Use:   "version",
+	Short: "Print the sopsctl version",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Printf("%s version %s\n", cmd.Root().Name(), cmd.Root().Version)
+	},
 }
 
 func init() {
@@ -46,4 +56,5 @@ func init() {
 	rootCmd.AddCommand(editCmd)
 	rootCmd.AddCommand(deleteCmd)
 	rootCmd.AddCommand(configCmd)
+	rootCmd.AddCommand(versionCmd)
 }
