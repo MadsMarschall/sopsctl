@@ -36,6 +36,9 @@ jobs:
           MINOR_STRING_TOKEN: "#MINOR"
           PATCH_STRING_TOKEN: "#PATCH"
           NONE_STRING_TOKEN: "#NONE"
+          # One-time override: v0.2.1 release name is locked by immutable releases.
+          # Remove this CUSTOM_TAG line in a follow-up commit after v0.2.2 ships.
+          CUSTOM_TAG: v0.2.2
 
   goreleaser:
     needs: tag
